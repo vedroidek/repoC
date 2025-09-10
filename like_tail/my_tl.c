@@ -3,6 +3,7 @@
 #include <getopt.h>
 #include <unistd.h>
 #include <signal.h>
+#define BUFFSIZE 256
 
 /**
  * Your version 'tail'.
@@ -53,10 +54,7 @@ int main(int argc, char * argv[])
                 fprintf(stderr, "Error: unknown option \'-%s\'.\n", optarg);
                 exit(EXIT_FAILURE);
             default:
-                printf("Help.\n\v");
-                puts("-v      show current version;");
-                puts("-f      set output file;");
-                exit(EXIT_SUCCESS);    
+                print_help();
         }
     }
 
@@ -70,7 +68,7 @@ FILE * open_file(const char * filename, const char * mode) {
     FILE * fp;
     fp = fopen(filename, mode);
     if (!fp) {
-        fprintf(stderr, "Error opening file");
+        fprintf(stderr, "Error opening file\n");
         exit(EXIT_FAILURE);
     }
     return fp;
@@ -87,9 +85,10 @@ long file_size(FILE * fptr) {
 
 void con_out(FILE * fptr) {
     // Constant out
-    long pos;
-    long new_pos;
-    int ch;
+    long pos; // position
+    long new_pos; // new position
+    char buffer[BUFFSIZE];
+    size_t bytes_read;
 
     signal(SIGINT, handle_sig);
 
@@ -107,12 +106,31 @@ void con_out(FILE * fptr) {
 
         new_pos = ftell(fptr);
 
+        if (new_pos < pos) {
+            perror("File was truncated. Resetting...\n");
+            fseek(fptr, 0, SEEK_SET);
+            new_pos = 0L;
+        }
+
         if (new_pos > pos) {
             fseek(fptr, pos, SEEK_SET);
-            while ((ch = getc(fptr)) != EOF) {
-                    putchar(ch);
+            size_t bytes_to_read = new_pos - pos;
+
+            while (bytes_to_read > 0) {
+                size_t chunk_size = (bytes_to_read < BUFFSIZE) ? bytes_to_read : BUFFSIZE;
+                bytes_read = fread(buffer, 1, chunk_size, fptr);
+
+                if (bytes_read > 0) {
+                    fwrite(buffer, 1, bytes_read, stdout);
+                    fflush(stdout);
+
+                    bytes_to_read -= bytes_read;
+                } else {
+                    perror("Error reading file.\n");
+                    break;
                 }
-            fflush(stdout);
+            }
+
             pos = new_pos;
         }
 
