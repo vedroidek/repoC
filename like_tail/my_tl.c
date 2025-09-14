@@ -3,7 +3,9 @@
 #include <getopt.h>
 #include <unistd.h>
 #include <signal.h>
+#include "colors.h"
 #define BUFFSIZE 256
+#define LAST_N_LINES 10
 
 /**
  * Your version 'tail'.
@@ -17,6 +19,7 @@ void inf_out(FILE *);
 FILE * open_file(const char *, const char *);
 void con_out(FILE *);
 void print_help();
+void output_last_n_lines(FILE *, int);
 
 
 int main(int argc, char * argv[])
@@ -32,10 +35,10 @@ int main(int argc, char * argv[])
     int opt;
     char * filename = NULL;
 
-    while ((opt = getopt(argc, argv, "o:s:f:hv")) != -1) {
+    while ((opt = getopt(argc, argv, "o:s:f:n:hv")) != -1) {
         switch (opt) {
             case 'o':
-             filename = optarg; // Save argument's value
+                filename = optarg; // Save argument's value
                 fp = open_file(filename, "rb");
                 puts("Press \'ctrl + c\' for exit.");
                 con_out(fp);
@@ -44,6 +47,12 @@ int main(int argc, char * argv[])
                 filename = optarg;
                 fp = open_file(filename, "rb");
                 printf("%ld", file_size(fp));
+                break;
+            case 'n':
+                filename = optarg;
+                fp = open_file(filename, "rb");
+                output_last_n_lines(fp, LAST_N_LINES);  // output last 10 lines
+                con_out(fp);
                 break;
             case 'h':
                 print_help();
@@ -136,7 +145,7 @@ void con_out(FILE * fptr) {
 
         sleep(1);
     }
-    puts("\nExit.");
+    puts(RED "\nExit." RESET);
 }
 
 void print_help() {
@@ -149,4 +158,25 @@ void print_help() {
 
 void handle_sig(int signal) {
     keep_runing = 0;
+}
+
+void output_last_n_lines(FILE * fptr, int n) {
+    int counter;
+    int new_line;
+    long shift_back = 0L;
+    int ch;
+
+    for (counter = 0 ; counter <= n; shift_back--) {
+        if (fseek(fptr, shift_back, SEEK_END) != 0) {
+            perror("Failed to move.");
+            exit(EXIT_FAILURE);
+        }
+
+        if ((new_line = getc(fptr)) == '\n')
+            counter++;
+    }
+
+    while ((ch = getc(fptr)) != EOF) {
+        putchar(ch);
+    }
 }
