@@ -35,7 +35,7 @@ int main(int argc, char * argv[])
     int opt;
     char * filename = NULL;
 
-    while ((opt = getopt(argc, argv, "o:s:f:n:hv")) != -1) {
+    while ((opt = getopt(argc, argv, "o:s:n:hv")) != -1) {
         switch (opt) {
             case 'o':
                 filename = optarg; // Save argument's value
@@ -152,7 +152,8 @@ void print_help() {
     printf("Help.\n\v");
     puts("-v      show current version;");
     puts("-s      size of file (byte);\n\t\tfile -s <filename>\n");
-    puts("-o      constant output of new lines;\n\t\tfile -o <filename>\n");
+    puts("-o      constant output of only new lines;\n\t\tfile -o <filename>\n");
+    puts("-n      output last 10 lines, then the constant withdrawal of new lines\n\t\tfile -n <filename>\n");
     exit(EXIT_SUCCESS);
 }
 
